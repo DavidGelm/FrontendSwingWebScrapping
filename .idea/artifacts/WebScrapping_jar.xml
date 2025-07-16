@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="WebScrapping:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/WebScrapping_jar</output-path>
+    <root id="archive" name="WebScrapping.jar">
+      <element id="module-output" name="WebScrapping" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/json-20240303.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/jsoup-1.17.2.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
