@@ -2,6 +2,7 @@
   <library name="json-20240303">
     <CLASSES>
       <root url="jar://$USER_HOME$/Downloads/json-20240303.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/jsoup-1.17.2.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

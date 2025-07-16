@@ -4,7 +4,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.net.*;
 import java.io.*;
-import org.json.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 public class WebScraperApp extends JFrame {
     private JTextField urlField;
@@ -105,32 +108,53 @@ public class WebScraperApp extends JFrame {
             @Override
             protected Void doInBackground() {
                 try {
-                    String apiUrl = "http://127.0.0.1:5000/api/productos?url=" + URLEncoder.encode(urlInput, "UTF-8");
-                    HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
-                    connection.setRequestMethod("GET");
-
-                    int status = connection.getResponseCode();
-                    InputStream stream;
-                    if (status >= 200 && status < 300) {
-                        stream = connection.getInputStream();
-                    } else {
-                        stream = connection.getErrorStream();
-                        errorMsg = "HTTP " + status + ": " + readStream(stream);
-                        return null;
-                    }
-
-                    String response = readStream(stream);
-                    JSONArray productos = new JSONArray(response);
                     tableModel.setRowCount(0); // Limpiar tabla
-                    for (int i = 0; i < productos.length(); i++) {
-                        JSONObject p = productos.getJSONObject(i);
-                        tableModel.addRow(new Object[] {
-                                p.optString("referencia"),
-                                p.optString("nombre"),
-                                p.optString("precio"),
-                                p.optString("descripcion"),
-                                p.optString("foto")
-                        });
+                    // Solo implemento scraping para artesaniabredasegra.com
+                    if (urlInput.contains("artesaniabredasegra.com")) {
+                        for (int pagina = 1; pagina <= 50; pagina++) {
+                            String url = (pagina == 1) ? urlInput : urlInput.replaceAll("/$","") + "/" + pagina;
+                            Document doc = Jsoup.connect(url)
+                                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+                                .timeout(10000)
+                                .get();
+                            Elements productos = doc.select("li.grid-4.m-grid-6.s-grid-12.compra.padded-inner");
+                            if (productos.isEmpty()) break;
+                            for (Element producto : productos) {
+                                String referencia = "";
+                                Element refTag = producto.selectFirst(".ref");
+                                if (refTag != null) {
+                                    referencia = refTag.text().trim();
+                                } else {
+                                    Elements posibles = producto.select("span,div,p");
+                                    for (Element pos : posibles) {
+                                        if (pos.text().toLowerCase().contains("ref")) {
+                                            referencia = pos.text().trim();
+                                            break;
+                                        }
+                                    }
+                                }
+                                Element nombreTag = producto.selectFirst("h2.item-title");
+                                String nombre = nombreTag != null ? nombreTag.text().trim() : "";
+                                if (!referencia.isEmpty() && nombre.startsWith(referencia)) {
+                    nombre = nombre.substring(referencia.length()).replaceFirst("^[\\s:.-]+", "");
+                                }
+                                Element fotoTag = producto.selectFirst("div.img.item-img-top img");
+                                String foto = fotoTag != null ? fotoTag.attr("src") : "";
+                                Element precioTag = producto.selectFirst("div.price.clearfix");
+                                String precio = precioTag != null ? precioTag.text().trim() : "";
+                                Element descripcionTag = producto.selectFirst("p");
+                                String descripcion = descripcionTag != null ? descripcionTag.text().trim() : "";
+                                tableModel.addRow(new Object[] {
+                                    referencia,
+                                    nombre,
+                                    precio,
+                                    descripcion,
+                                    foto
+                                });
+                            }
+                        }
+                    } else {
+                        errorMsg = "Solo se soporta artesaniabredasegra.com en esta demo.";
                     }
                 } catch (Exception e) {
                     errorMsg = e.getMessage();
@@ -149,16 +173,7 @@ public class WebScraperApp extends JFrame {
         worker.execute();
     }
 
-    private String readStream(InputStream stream) throws IOException {
-        if (stream == null) return "";
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null)
-            response.append(line);
-        reader.close();
-        return response.toString();
-    }
+    // Eliminado: readStream, ya no es necesario
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
