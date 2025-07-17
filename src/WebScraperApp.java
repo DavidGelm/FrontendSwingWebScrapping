@@ -13,6 +13,7 @@ public class WebScraperApp extends JFrame {
     private JTextField urlField;
     private JButton fetchButton;
     private JButton downloadCsvButton;
+    private JButton downloadImagesButton; // Nuevo botón
     private JTable table;
     private DefaultTableModel tableModel;
 
@@ -29,11 +30,13 @@ public class WebScraperApp extends JFrame {
         urlField = new JTextField("https://www.artesaniabredasegra.com/es/ceramica/cazuelas-de-barro/", 50);
         fetchButton = new JButton("Ver Productos");
         downloadCsvButton = new JButton("Descargar CSV");
+        downloadImagesButton = new JButton("Descargar Imágenes"); // Nuevo botón
 
         topPanel.add(new JLabel("URL:"));
         topPanel.add(urlField);
         topPanel.add(fetchButton);
         topPanel.add(downloadCsvButton);
+        topPanel.add(downloadImagesButton); // Añadido al panel
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -55,6 +58,42 @@ public class WebScraperApp extends JFrame {
         downloadCsvButton.addActionListener(e -> {
             descargarCSV();
         });
+
+        // Acción del botón de descargar imágenes
+        downloadImagesButton.addActionListener(e -> {
+            descargarImagenes();
+        });
+    }
+    // Descarga todas las imágenes de la columna "Imagen URL" en una carpeta elegida
+    private void descargarImagenes() {
+        if (tableModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "No hay datos para descargar imágenes.");
+            return;
+        }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Selecciona carpeta destino");
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int res = chooser.showSaveDialog(this);
+        if (res != JFileChooser.APPROVE_OPTION) return;
+        File carpeta = chooser.getSelectedFile();
+        int count = 0;
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            Object urlObj = tableModel.getValueAt(row, 4); // Columna Imagen URL
+            String url = urlObj != null ? urlObj.toString() : "";
+            if (url.isEmpty() || !url.startsWith("http")) continue;
+            try (InputStream in = new URL(url).openStream()) {
+                File imgFile = new File(carpeta, "img_" + row + ".jpg");
+                try (OutputStream out = new FileOutputStream(imgFile)) {
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+                count++;
+            } catch (Exception ex) {
+                // Puedes mostrar un mensaje o ignorar errores individuales
+            }
+        }
+        JOptionPane.showMessageDialog(this, "Descargadas " + count + " imágenes en:\n" + carpeta.getAbsolutePath());
     }
 
     private void descargarCSV() {
