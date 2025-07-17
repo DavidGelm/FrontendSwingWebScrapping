@@ -13,7 +13,8 @@ public class WebScraperApp extends JFrame {
     private JTextField urlField;
     private JButton fetchButton;
     private JButton downloadCsvButton;
-    private JButton downloadImagesButton; // Nuevo botón
+    private JButton downloadImagesButton;
+    private JButton downloadImagesDefaultButton;
     private JTable table;
     private DefaultTableModel tableModel;
 
@@ -30,13 +31,15 @@ public class WebScraperApp extends JFrame {
         urlField = new JTextField("https://www.artesaniabredasegra.com/es/ceramica/cazuelas-de-barro/", 50);
         fetchButton = new JButton("Ver Productos");
         downloadCsvButton = new JButton("Descargar CSV");
-        downloadImagesButton = new JButton("Descargar Imágenes"); // Nuevo botón
+        downloadImagesButton = new JButton("Descargar Imágenes");
+        downloadImagesDefaultButton = new JButton("Descargar Imágenes (por defecto)");
 
         topPanel.add(new JLabel("URL:"));
         topPanel.add(urlField);
         topPanel.add(fetchButton);
         topPanel.add(downloadCsvButton);
-        topPanel.add(downloadImagesButton); // Añadido al panel
+        topPanel.add(downloadImagesButton);
+        topPanel.add(downloadImagesDefaultButton);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -63,6 +66,42 @@ public class WebScraperApp extends JFrame {
         downloadImagesButton.addActionListener(e -> {
             descargarImagenes();
         });
+
+        // Acción del botón de descarga por defecto
+        downloadImagesDefaultButton.addActionListener(e -> {
+            descargarImagenesPorDefecto();
+        });
+    }
+    // Descarga todas las imágenes en C:\temp\descarregues_{fecha_hora}
+    private void descargarImagenesPorDefecto() {
+        if (tableModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "No hay datos para descargar imágenes.");
+            return;
+        }
+        String baseDir = "C:\\temp";
+        File tempDir = new File(baseDir);
+        if (!tempDir.exists()) tempDir.mkdirs();
+        String fechaHora = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+        File descargaDir = new File(tempDir, "descarregues_" + fechaHora);
+        if (!descargaDir.exists()) descargaDir.mkdirs();
+        int count = 0;
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            Object urlObj = tableModel.getValueAt(row, 4); // Columna Imagen URL
+            String url = urlObj != null ? urlObj.toString() : "";
+            if (url.isEmpty() || !url.startsWith("http")) continue;
+            try (InputStream in = new URL(url).openStream()) {
+                File imgFile = new File(descargaDir, "img_" + row + ".jpg");
+                try (OutputStream out = new FileOutputStream(imgFile)) {
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+                count++;
+            } catch (Exception ex) {
+                // Puedes mostrar un mensaje o ignorar errores individuales
+            }
+        }
+        JOptionPane.showMessageDialog(this, "Descargadas " + count + " imágenes en:\n" + descargaDir.getAbsolutePath());
     }
     // Descarga todas las imágenes de la columna "Imagen URL" en una carpeta elegida
     private void descargarImagenes() {
